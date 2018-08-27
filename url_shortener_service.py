@@ -100,7 +100,7 @@ def show_original_url(hash_):
                 url = url_.url
             return redirect(url)
         else:
-            return abort(400, "Url not found. Create a shortened url first.")
+            abort(400, "Url not found. Create a shortened url first.")
 
     abort(400)
 
