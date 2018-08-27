@@ -1,18 +1,24 @@
 import os
 import uuid
 
-from flask import Flask, request, jsonify, make_response, redirect, abort
+from flask import (Flask, request, jsonify, make_response, redirect, 
+                   abort, send_from_directory)
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import exc
 
+from flask import send_from_directory
+
 
 HASH_LEN = 8
+LOADERIO_DIR = "loaderio"
 
 
 app = Flask(__name__)
 
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///url_shortener.db'
+# Credential details would normally be read via environment vars or a file 
+# not added to the git index .
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://me:pw@localhost/mydb'
 db = SQLAlchemy(app)
 
 
@@ -31,13 +37,23 @@ class Url(db.Model):
     def __repr__(self):
         return '<Url {0}>'.format(self.shortened_url)
 
+
+#db.drop_all()
 # Idempotent
 db.create_all()
 
 
-# WHAT IF GET REQUEST? V (auto resp 405 from Flask; method not allowed response builtin from Flask)
-# !! POST req: WHAT IF SOMETHING WRONG WITH JSON V
-# !! POST req: What if non-json V
+# For stress testing via loaderio
+@app.route("/loaderio-bb0e1b56753b9545a4b973bf46647a45.txt")
+def serve_loaderio_file():
+    return send_from_directory(LOADERIO_DIR, "loaderio.txt")
+
+
+@app.route("/loaderio-req-vars.json")
+def serve_loaderio_req_vars_file():
+    return send_from_directory(LOADERIO_DIR, "loaderio_req_vars.json")
+
+
 @app.route("/shorten_url", methods=['POST'])
 def shorten_url():
     if not request.json:
@@ -46,22 +62,29 @@ def shorten_url():
         url = request.json.get("url")
         if not url:
             abort(400, "Please specify a 'url' attribute.")
-     
+
+    created = False
     url_ = Url.query.filter_by(url=url).first()
-    while not url_:
-        hash_ = uuid.uuid4().hex[:HASH_LEN]
-        url_ = Url(url=url, hash_=hash_)
-        db.session.add(url_)
-        try:
-            db.session.commit()
-        # If we happen to get the same hash for a diff url
-        # (as hash is shortened version).
-        except exc.IntegrityError as error:
-            session.rollback()
-            url_ = None
+    if not url_:
+        created = True
+        saved = False
+        while not saved:
+            hash_ = uuid.uuid4().hex[:HASH_LEN]
+            url_ = Url(url=url, hash_=hash_)
+            db.session.add(url_)
+            try:
+                db.session.commit()
+                saved = True
+            # If we happen to get the same hash for a diff url
+            # (as hash is shortened version).
+            except exc.IntegrityError as error:
+                db.session.rollback()
 
     body = {"shortened_url" : url_.shortened_url}
-    return make_response(jsonify(body), 201)
+    if created: 
+        return make_response(jsonify(body), 201)
+    else:
+        return make_response(jsonify(body), 200)
 
 
 @app.route("/<hash_>", methods=['GET'])
@@ -83,5 +106,4 @@ def show_original_url(hash_):
 
 
 if __name__ == '__main__':
-    app.run()
-
+    app.run(threaded=True)
