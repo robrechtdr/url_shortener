@@ -1,6 +1,59 @@
 # Url Shortener
 
-## Installation
+## Problem description
+
+Your primary task is to build a URL shortener web service using Java, Scala or Python.
+
+### Requirements
+
+Your web service should have a POST /shorten_url endpoint that receives a JSON body with the URL to shorten. A successful request will return a JSON body with the shortened url. If a GET request is made to the shortened URL then the user should be redirected to the the original URL, or returned the contents of the original URL.
+
+It should perform appropriate validation on the URL to be shortened, and return appropriate error responses if the URL is not valid.
+It should contain a README.md file with instructions on how to run your service.
+
+> This task is simple and straightforward, so we will be assessing you on your implementation of web services, use of the language and solid engineering practices. Use this as an opportunity to demonstrate how you write code and solve problems. 
+
+> You should also build your web service so it can scale to a thousands of requests per second. Please explain in your README.md file how does your solution allow for it and how would you scale it.
+
+### Example usage:
+
+1. `GET www.helloworld.com -> hello world`
+
+2.     
+
+   ```    
+	Request:
+
+	  POST www.your_service.com/shorten_url
+
+	  body:
+
+	  {
+
+	  "url": "www.helloworld.com"
+
+	  }
+
+	Response:
+
+	  Status code: 201
+
+	  response_body:
+
+	  {
+
+	  "shortened_url": 'http://www.your_service.com/ouoYFY48'
+
+	  }
+   ```
+
+
+3. `GET http://www.your_service.com/ouoYFY48 -> hello world`
+
+
+## Solution
+
+### Installation
 
 > Have virtualenv and virtualenvwrapper installed.
 
@@ -10,27 +63,27 @@
 Also create postgres user `me` with pw `pw` and db `mydb`.
 
 
-## Running
+### Running
 
-### Run server
+#### Run server
 
 > `-w n`: with `n` being (#cores of machine x 2) + 1.
 
 	gunicorn -w 9 url_shortener_service:app
 
-### Generate a shortened url from a full url
+#### Generate a shortened url from a full url
 
 	curl -v --header "Content-Type: application/json" --request POST --data '{"url":"www.helloworld.com"}' http://localhost:5000/shorten_url
 
 
-### Get redirected to full url given shortened url
+#### Get redirected to full url given shortened url
 
 > -v shows status code returned. The url hash will be different for you as randomly generated.
 
 	curl http://localhost:5000/4bb0a10a9 -v
 
 
-## Scaling to thousands of requests
+### Scaling to thousands of requests
 
 First off we are using a heavy-duty database like Postgres rather than something like Sqlite as within hundreds of requests per second we otherwise run into database lock errors.
 

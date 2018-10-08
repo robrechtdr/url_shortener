@@ -22,7 +22,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://me:pw@localhost/mydb'
 db = SQLAlchemy(app)
 
 
-# For multiple models Would place in a models.py file
+# For multiple models would place in a models.py file
 class Url(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     hash_ = db.Column(db.String(HASH_LEN), unique=True, nullable=False)
